@@ -76,10 +76,9 @@ public class TusClient {
     /**
      * Get the current status if resuming.
      *
+     * @return True if resuming has been enabled using {@link #enableResuming(TusURLStore)}
      * @see #enableResuming(TusURLStore)
      * @see #disableResuming()
-     *
-     * @return True if resuming has been enabled using {@link #enableResuming(TusURLStore)}
      */
     public boolean resumingEnabled() {
         return resumingEnabled;
@@ -106,10 +105,9 @@ public class TusClient {
     /**
      * Get the current status if removing fingerprints after a successful upload.
      *
+     * @return True if resuming has been enabled using {@link #enableResuming(TusURLStore)}
      * @see #enableRemoveFingerprintOnSuccess()
      * @see #disableRemoveFingerprintOnSuccess()
-     *
-     * @return True if resuming has been enabled using {@link #enableResuming(TusURLStore)}
      */
     public boolean removeFingerprintOnSuccessEnabled() {
         return removeFingerprintOnSuccessEnabled;
@@ -121,10 +119,9 @@ public class TusClient {
      * These may to overwrite tus-specific headers, which can be identified by their Tus-*
      * prefix, and can cause unexpected behavior.
      *
+     * @param headers The map of HTTP headers
      * @see #getHeaders()
      * @see #prepareConnection(HttpURLConnection)
-     *
-     * @param headers The map of HTTP headers
      */
     public void setHeaders(@Nullable Map<String, String> headers) {
         this.headers = headers;
@@ -134,10 +131,9 @@ public class TusClient {
      * Get the HTTP headers which should be contained in every request and were configured using
      * {@link #setHeaders(Map)}.
      *
+     * @return The map of configured HTTP headers
      * @see #setHeaders(Map)
      * @see #prepareConnection(HttpURLConnection)
-     *
-     * @return The map of configured HTTP headers
      */
     @Nullable
     public Map<String, String> getHeaders() {
@@ -162,8 +158,8 @@ public class TusClient {
      * @param upload The file for which a new upload will be created
      * @return Use {@link TusUploader} to upload the file's chunks.
      * @throws ProtocolException Thrown if the remote server sent an unexpected response, e.g.
-     * wrong status codes or missing/invalid headers.
-     * @throws IOException Thrown if an exception occurs while issuing the HTTP request.
+     *                           wrong status codes or missing/invalid headers.
+     * @throws IOException       Thrown if an exception occurs while issuing the HTTP request.
      */
     public TusUploader createUpload(@NotNull TusUpload upload) throws ProtocolException, IOException {
         HttpURLConnection connection = (HttpURLConnection) uploadCreationURL.openConnection();
@@ -171,7 +167,7 @@ public class TusClient {
         prepareConnection(connection);
 
         String encodedMetadata = upload.getEncodedMetadata();
-        if(encodedMetadata.length() > 0) {
+        if (encodedMetadata.length() > 0) {
             connection.setRequestProperty("Upload-Metadata", encodedMetadata);
         }
 
@@ -179,12 +175,12 @@ public class TusClient {
         connection.connect();
 
         int responseCode = connection.getResponseCode();
-        if(!(responseCode >= 200 && responseCode < 300)) {
+        if (!(responseCode >= 200 && responseCode < 300)) {
             throw new ProtocolException("unexpected status code (" + responseCode + ") while creating upload", connection);
         }
 
         String urlStr = connection.getHeaderField("Location");
-        if(urlStr == null || urlStr.length() == 0) {
+        if (urlStr == null || urlStr.length() == 0) {
             throw new ProtocolException("missing upload URL in response for creating upload", connection);
         }
 
@@ -193,13 +189,13 @@ public class TusClient {
         // but there may be cases in which the POST request is redirected.
         URL uploadURL = new URL(connection.getURL(), urlStr);
 
-        if(resumingEnabled) {
+        if (resumingEnabled) {
             urlStore.set(upload.getFingerprint(), uploadURL);
         }
 
         String uploadOffsetStr = connection.getHeaderField("Upload-Offset");
         long uploadOffset = 0;
-        if (uploadOffsetStr == null || uploadOffsetStr.length() == 0) {
+        if (uploadOffsetStr != null && uploadOffsetStr.length() > 0) {
             uploadOffset = Long.parseLong(uploadOffsetStr);
         }
         return new TusUploader(this, upload, uploadURL, upload.getTusInputStream(), uploadOffset);
@@ -215,12 +211,12 @@ public class TusClient {
      * @param upload The file for which an upload will be resumed
      * @return Use {@link TusUploader} to upload the remaining file's chunks.
      * @throws FingerprintNotFoundException Thrown if no matching fingerprint has been found in
-     * {@link TusURLStore}. Use {@link #createUpload(TusUpload)} to create a new upload.
-     * @throws ResumingNotEnabledException Throw if resuming has not been enabled using {@link
-     * #enableResuming(TusURLStore)}.
-     * @throws ProtocolException Thrown if the remote server sent an unexpected response, e.g.
-     * wrong status codes or missing/invalid headers.
-     * @throws IOException Thrown if an exception occurs while issuing the HTTP request.
+     *                                      {@link TusURLStore}. Use {@link #createUpload(TusUpload)} to create a new upload.
+     * @throws ResumingNotEnabledException  Throw if resuming has not been enabled using {@link
+     *                                      #enableResuming(TusURLStore)}.
+     * @throws ProtocolException            Thrown if the remote server sent an unexpected response, e.g.
+     *                                      wrong status codes or missing/invalid headers.
+     * @throws IOException                  Thrown if an exception occurs while issuing the HTTP request.
      */
     public TusUploader resumeUpload(@NotNull TusUpload upload) throws FingerprintNotFoundException, ResumingNotEnabledException, ProtocolException, IOException {
         if (!resumingEnabled) {
@@ -245,12 +241,12 @@ public class TusClient {
      * When called a HEAD request will be issued to find the current offset without uploading the file, yet.
      * The uploading can be started by using the returned {@link TusUploader} object.
      *
-     * @param upload The file for which an upload will be resumed
+     * @param upload    The file for which an upload will be resumed
      * @param uploadURL The upload location URL at which has already been created and this file should be uploaded to.
      * @return Use {@link TusUploader} to upload the remaining file's chunks.
      * @throws ProtocolException Thrown if the remote server sent an unexpected response, e.g.
-     * wrong status codes or missing/invalid headers.
-     * @throws IOException Thrown if an exception occurs while issuing the HTTP request.
+     *                           wrong status codes or missing/invalid headers.
+     * @throws IOException       Thrown if an exception occurs while issuing the HTTP request.
      */
     public TusUploader beginOrResumeUploadFromURL(@NotNull TusUpload upload, @NotNull URL uploadURL) throws ProtocolException, IOException {
         HttpURLConnection connection = (HttpURLConnection) uploadURL.openConnection();
@@ -260,12 +256,12 @@ public class TusClient {
         connection.connect();
 
         int responseCode = connection.getResponseCode();
-        if(!(responseCode >= 200 && responseCode < 300)) {
+        if (!(responseCode >= 200 && responseCode < 300)) {
             throw new ProtocolException("unexpected status code (" + responseCode + ") while resuming upload", connection);
         }
 
         String offsetStr = connection.getHeaderField("Upload-Offset");
-        if(offsetStr == null || offsetStr.length() == 0) {
+        if (offsetStr == null || offsetStr.length() == 0) {
             throw new ProtocolException("missing upload offset in response for resuming upload", connection);
         }
         long offset = Long.parseLong(offsetStr);
@@ -280,21 +276,21 @@ public class TusClient {
      *
      * @param upload The file for which an upload will be resumed
      * @throws ProtocolException Thrown if the remote server sent an unexpected response, e.g.
-     * wrong status codes or missing/invalid headers.
-     * @throws IOException Thrown if an exception occurs while issuing the HTTP request.
+     *                           wrong status codes or missing/invalid headers.
+     * @throws IOException       Thrown if an exception occurs while issuing the HTTP request.
      */
     public TusUploader resumeOrCreateUpload(@NotNull TusUpload upload) throws ProtocolException, IOException {
         try {
             return resumeUpload(upload);
-        } catch(FingerprintNotFoundException e) {
+        } catch (FingerprintNotFoundException e) {
             return createUpload(upload);
-        } catch(ResumingNotEnabledException e) {
+        } catch (ResumingNotEnabledException e) {
             return createUpload(upload);
-        } catch(ProtocolException e) {
+        } catch (ProtocolException e) {
             // If the attempt to resume returned a 404 Not Found, we immediately try to create a new
             // one since TusExectuor would not retry this operation.
             HttpURLConnection connection = e.getCausingConnection();
-            if(connection != null && connection.getResponseCode() == 404) {
+            if (connection != null && connection.getResponseCode() == 404) {
                 return createUpload(upload);
             }
 
@@ -317,7 +313,7 @@ public class TusClient {
         connection.setConnectTimeout(connectTimeout);
         connection.addRequestProperty("Tus-Resumable", TUS_VERSION);
 
-        if(headers != null) {
+        if (headers != null) {
             for (Map.Entry<String, String> entry : headers.entrySet()) {
                 connection.addRequestProperty(entry.getKey(), entry.getValue());
             }
