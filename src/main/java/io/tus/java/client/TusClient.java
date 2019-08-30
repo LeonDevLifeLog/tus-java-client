@@ -197,7 +197,11 @@ public class TusClient {
             urlStore.set(upload.getFingerprint(), uploadURL);
         }
 
-        return new TusUploader(this, upload, uploadURL, upload.getTusInputStream(), 0);
+        String uploadOffset = connection.getHeaderField("Upload-Offset");
+        if (uploadOffset == null || uploadOffset.length() == 0) {
+            throw new ProtocolException("missing Upload-Offset header in response for creating upload", connection);
+        }
+        return new TusUploader(this, upload, uploadURL, upload.getTusInputStream(), Long.parseLong(uploadOffset));
     }
 
     /**
