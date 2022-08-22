@@ -21,6 +21,7 @@ public class TusUpload {
     private TusInputStream tusInputStream;
     private String fingerprint;
     private Map<String, String> metadata;
+    private Map<String, String> headers;
 
     /**
      * Create a new TusUpload object.
@@ -43,6 +44,7 @@ public class TusUpload {
 
         metadata = new HashMap<String, String>();
         metadata.put("filename", file.getName());
+        headers = new HashMap<String, String>();
     }
 
     public long getSize() {
@@ -90,6 +92,14 @@ public class TusUpload {
 
     public Map<String, String> getMetadata() {
         return metadata;
+    }
+
+    public void addHeader(String key, String value) {
+        headers.put(key, value);
+    }
+
+    public Map<String, String> getHeaders() {
+        return headers;
     }
 
     /**

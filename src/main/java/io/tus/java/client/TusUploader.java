@@ -5,6 +5,8 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * This class is used for doing the actual upload of the files. Instances are returned by
@@ -74,6 +76,10 @@ public class TusUploader {
         } catch (java.net.ProtocolException pe) {
             connection.setRequestMethod("POST");
             connection.setRequestProperty("X-HTTP-Method-Override", "PATCH");
+        }
+        Set<Map.Entry<String, String>> entries = upload.getHeaders().entrySet();
+        for (Map.Entry<String, String> entry : entries) {
+            connection.setRequestProperty(entry.getKey(), entry.getValue());
         }
 
         connection.setDoOutput(true);
