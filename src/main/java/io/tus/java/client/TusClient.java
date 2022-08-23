@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * This class is used for creating or resuming uploads.
@@ -172,6 +173,12 @@ public class TusClient {
         }
 
         connection.addRequestProperty("Upload-Length", Long.toString(upload.getSize()));
+
+        Set<Map.Entry<String, String>> entries = upload.getHeaders().entrySet();
+        for (Map.Entry<String, String> entry : entries) {
+            connection.addRequestProperty(entry.getKey(),entry.getValue());
+        }
+
         connection.connect();
 
         int responseCode = connection.getResponseCode();
